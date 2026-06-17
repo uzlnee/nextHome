@@ -360,12 +360,19 @@ export default function App() {
               );
             }
             return (
-              <div className="text-center">
-                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 28, letterSpacing: '-0.4px', color: C.textPrimary }}>
-                  Next <span style={{ color: C.blue }}>Home</span>
-                </div>
-                <div className="text-sm mt-1.5" style={{ color: C.textMuted }}>재개발 구역 비교노트</div>
-                <div style={{ width: 28, height: 3, borderRadius: 999, background: C.blue, margin: '10px auto 0' }} />
+              <div className="flex justify-center">
+                <img
+                  src="/next-home-title.png"
+                  alt="Next Home"
+                  style={{
+                    width: 220,
+                    height: 70,
+                    objectFit: 'cover',
+                    objectPosition: 'center',
+                    borderRadius: 14,
+                    display: 'block',
+                  }}
+                />
               </div>
             );
           })()}
