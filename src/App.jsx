@@ -365,8 +365,8 @@ export default function App() {
                   src="/next-home-title.png"
                   alt="Next Home"
                   style={{
-                    width: 220,
-                    height: 70,
+                    width: 'min(320px, 100%)',
+                    height: 100,
                     objectFit: 'cover',
                     objectPosition: 'center',
                     borderRadius: 14,
