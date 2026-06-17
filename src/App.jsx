@@ -323,7 +323,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ background: C.bg, minHeight: '100vh', fontFamily: font, color: C.textPrimary }}>
+    <div style={{ background: C.bg, height: '100dvh', minHeight: '100vh', fontFamily: font, color: C.textPrimary, overflow: 'hidden' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap');
         input[type=range] { -webkit-appearance: none; height: 4px; border-radius: 999px; background: ${C.greyBg}; }
@@ -332,10 +332,10 @@ export default function App() {
         button { font-family: ${font}; }
       `}</style>
 
-      <div style={{ maxWidth: 430, margin: '0 auto', minHeight: '100vh', position: 'relative', background: C.bg }}>
+      <div style={{ maxWidth: 430, margin: '0 auto', height: '100%', minHeight: 0, position: 'relative', background: C.bg, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Header */}
-        <div style={{ padding: '24px 20px 16px', background: C.bg }}>
+        <div style={{ padding: '24px 20px 16px', background: C.bg, flexShrink: 0 }}>
           {(() => {
             if (tab === 'detail' && listingDraft) {
               return (
@@ -372,7 +372,7 @@ export default function App() {
         </div>
 
         {/* Content */}
-        <div style={{ padding: '8px 20px 100px' }}>
+        <div style={{ padding: '8px 20px 20px', flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
 
           {/* ---- Compare tab ---- */}
           {tab === 'compare' && (
@@ -722,7 +722,7 @@ export default function App() {
         </div>
 
         {/* Bottom nav */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: `1px solid ${C.greyBg}` }} className="flex justify-around py-3">
+        <div style={{ flexShrink: 0, background: '#fff', borderTop: `1px solid ${C.greyBg}`, paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }} className="flex justify-around pt-3">
           {[
             { id: 'compare', label: '비교', icon: LayoutGrid },
             { id: 'detail', label: '상세', icon: Building2 },
