@@ -323,7 +323,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ background: C.bg, height: '100dvh', minHeight: '100vh', fontFamily: font, color: C.textPrimary, overflow: 'hidden' }}>
+    <div style={{ background: C.bg, height: '100dvh', fontFamily: font, color: C.textPrimary, overflow: 'hidden' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap');
         input[type=range] { -webkit-appearance: none; height: 4px; border-radius: 999px; background: ${C.greyBg}; }
@@ -372,7 +372,7 @@ export default function App() {
         </div>
 
         {/* Content */}
-        <div style={{ padding: '8px 20px 20px', flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ padding: '8px 20px calc(88px + env(safe-area-inset-bottom))', flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
 
           {/* ---- Compare tab ---- */}
           {tab === 'compare' && (
@@ -722,7 +722,23 @@ export default function App() {
         </div>
 
         {/* Bottom nav */}
-        <div style={{ flexShrink: 0, background: '#fff', borderTop: `1px solid ${C.greyBg}`, paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }} className="flex justify-around pt-3">
+        <div
+          style={{
+            position: 'fixed',
+            left: '50%',
+            right: 'auto',
+            bottom: 0,
+            transform: 'translateX(-50%)',
+            width: '100%',
+            maxWidth: 430,
+            zIndex: 20,
+            background: '#fff',
+            borderTop: `1px solid ${C.greyBg}`,
+            padding: '8px 10px calc(8px + env(safe-area-inset-bottom))',
+            boxSizing: 'border-box',
+          }}
+          className="flex justify-around"
+        >
           {[
             { id: 'compare', label: '비교', icon: LayoutGrid },
             { id: 'detail', label: '상세', icon: Building2 },
@@ -735,11 +751,11 @@ export default function App() {
               <button
                 key={t.id}
                 onClick={() => { setTab(t.id); if (t.id !== 'detail') { setSelectedId(null); setDraft(null); setListingDraft(null); setEditingListingId(null); } }}
-                className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl"
-                style={{ color: active ? C.blue : C.textMuted, background: active ? C.blueBg : 'none', border: 'none', transition: 'background 0.15s ease' }}
+                className="flex flex-col items-center justify-center gap-0.5 rounded-2xl"
+                style={{ minWidth: 58, height: 48, color: active ? C.blue : C.textMuted, background: active ? C.blueBg : 'none', border: 'none', transition: 'background 0.15s ease' }}
               >
-                <Icon size={20} strokeWidth={active ? 2.3 : 1.8} />
-                <span className="text-xs" style={{ fontWeight: active ? 600 : 400 }}>{t.label}</span>
+                <Icon size={19} strokeWidth={active ? 2.3 : 1.8} />
+                <span style={{ fontSize: 11, lineHeight: 1.1, fontWeight: active ? 600 : 400 }}>{t.label}</span>
               </button>
             );
           })}
