@@ -372,7 +372,7 @@ export default function App() {
         </div>
 
         {/* Content */}
-        <div style={{ padding: '8px 20px calc(88px + env(safe-area-inset-bottom))', flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ padding: '8px 20px calc(96px + env(safe-area-inset-bottom))', flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
 
           {/* ---- Compare tab ---- */}
           {tab === 'compare' && (
@@ -734,7 +734,7 @@ export default function App() {
             zIndex: 20,
             background: '#fff',
             borderTop: `1px solid ${C.greyBg}`,
-            padding: '8px 10px calc(8px + env(safe-area-inset-bottom))',
+            padding: '10px 10px calc(10px + env(safe-area-inset-bottom))',
             boxSizing: 'border-box',
           }}
           className="flex justify-around"
@@ -752,10 +752,10 @@ export default function App() {
                 key={t.id}
                 onClick={() => { setTab(t.id); if (t.id !== 'detail') { setSelectedId(null); setDraft(null); setListingDraft(null); setEditingListingId(null); } }}
                 className="flex flex-col items-center justify-center gap-0.5 rounded-2xl"
-                style={{ minWidth: 58, height: 48, color: active ? C.blue : C.textMuted, background: active ? C.blueBg : 'none', border: 'none', transition: 'background 0.15s ease' }}
+                style={{ minWidth: 60, height: 54, color: active ? C.blue : C.textMuted, background: active ? C.blueBg : 'none', border: 'none', transition: 'background 0.15s ease' }}
               >
-                <Icon size={19} strokeWidth={active ? 2.3 : 1.8} />
-                <span style={{ fontSize: 11, lineHeight: 1.1, fontWeight: active ? 600 : 400 }}>{t.label}</span>
+                <Icon size={20} strokeWidth={active ? 2.3 : 1.8} />
+                <span style={{ fontSize: 11.5, lineHeight: 1.1, fontWeight: active ? 600 : 400 }}>{t.label}</span>
               </button>
             );
           })}
