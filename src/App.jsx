@@ -367,9 +367,8 @@ export default function App() {
                   style={{
                     width: 'min(320px, 100%)',
                     height: 100,
-                    objectFit: 'cover',
+                    objectFit: 'contain',
                     objectPosition: 'center',
-                    borderRadius: 14,
                     display: 'block',
                   }}
                 />
