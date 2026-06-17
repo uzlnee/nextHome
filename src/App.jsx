@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   LayoutGrid, Building2, SlidersHorizontal, MessageCircle, Plus, ChevronLeft,
-  Trash2, MapPin, ChevronRight, RotateCcw, Send,
+  Trash2, MapPin, ChevronRight, RotateCcw, Send, LogOut,
 } from 'lucide-react';
+import { supabase } from './supabaseClient';
 
 /* ---------- Design tokens (Toss-style, blue, white bg) ---------- */
 const C = {
@@ -24,6 +25,11 @@ const C = {
 
 const font = "-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Malgun Gothic', sans-serif";
 const fontDisplay = "'Outfit', -apple-system, 'Apple SD Gothic Neo', sans-serif";
+
+const DEFAULT_WEIGHTS = { price: 5, speed: 5, transit: 5, school: 5, builder: 5 };
+const INITIAL_CHAT_MESSAGES = [
+  { role: 'assistant', content: '안녕하세요! 등록하신 구역과 매물 정보를 바탕으로 비교를 도와드릴게요. 무엇이든 물어보세요.' },
+];
 
 /* 도시정비법 기준 표준 절차를 좀 더 세분화 + 단계별 평균 소요기간(개월) */
 const STAGES = [
@@ -219,22 +225,175 @@ const inputStyle = {
 
 const cardStyle = { background: C.card, border: `1px solid ${C.greyBg}`, boxShadow: '0 1px 2px rgba(20,30,40,0.03), 0 6px 20px rgba(20,30,40,0.05)' };
 
+function titleImageStyle(height = 100) {
+  return {
+    width: 'min(320px, 100%)',
+    height,
+    objectFit: 'contain',
+    objectPosition: 'center',
+    display: 'block',
+  };
+}
+
 /* ---------- Main App ---------- */
 export default function App() {
   const [zones, setZones] = useState([]);
-  const [weights, setWeights] = useState({ price: 5, speed: 5, transit: 5, school: 5, builder: 5 });
+  const [weights, setWeights] = useState(DEFAULT_WEIGHTS);
   const [tab, setTab] = useState('compare');
   const [selectedId, setSelectedId] = useState(null);
   const [draft, setDraft] = useState(null);
   const [listingDraft, setListingDraft] = useState(null);
   const [editingListingId, setEditingListingId] = useState(null);
 
-  const [chatMessages, setChatMessages] = useState([
-    { role: 'assistant', content: '안녕하세요! 등록하신 구역과 매물 정보를 바탕으로 비교를 도와드릴게요. 무엇이든 물어보세요.' },
-  ]);
+  const [chatMessages, setChatMessages] = useState(INITIAL_CHAT_MESSAGES);
   const [apiMessages, setApiMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authMode, setAuthMode] = useState('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [syncMessage, setSyncMessage] = useState('');
+  const [hasLoadedRemote, setHasLoadedRemote] = useState(false);
+  const [isSavingRemote, setIsSavingRemote] = useState(false);
+  const user = session?.user || null;
+
+  useEffect(() => {
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setSession(data.session);
+      setAuthLoading(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setAuthLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resetLocalData = () => {
+      setZones([]);
+      setWeights(DEFAULT_WEIGHTS);
+      setChatMessages(INITIAL_CHAT_MESSAGES);
+      setApiMessages([]);
+      setSelectedId(null);
+      setDraft(null);
+      setListingDraft(null);
+      setEditingListingId(null);
+    };
+
+    const loadUserData = async () => {
+      setHasLoadedRemote(false);
+      setSyncMessage('불러오는 중...');
+
+      const { data, error } = await supabase
+        .from('user_app_data')
+        .select('zones, weights, chat_messages, api_messages')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        setSyncMessage('Supabase 테이블 설정이 필요해요.');
+        setHasLoadedRemote(false);
+        return;
+      }
+
+      setZones(Array.isArray(data?.zones) ? data.zones : []);
+      setWeights(data?.weights || DEFAULT_WEIGHTS);
+      setChatMessages(Array.isArray(data?.chat_messages) && data.chat_messages.length > 0 ? data.chat_messages : INITIAL_CHAT_MESSAGES);
+      setApiMessages(Array.isArray(data?.api_messages) ? data.api_messages : []);
+      setSelectedId(null);
+      setDraft(null);
+      setListingDraft(null);
+      setEditingListingId(null);
+      setHasLoadedRemote(true);
+      setSyncMessage(data ? '저장된 기록을 불러왔어요.' : '새 기록을 시작했어요.');
+    };
+
+    if (!user) {
+      resetLocalData();
+      setHasLoadedRemote(false);
+      setSyncMessage('');
+      return;
+    }
+
+    loadUserData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user || !hasLoadedRemote) return undefined;
+
+    const timer = window.setTimeout(async () => {
+      setIsSavingRemote(true);
+      const { error } = await supabase
+        .from('user_app_data')
+        .upsert({
+          user_id: user.id,
+          zones,
+          weights,
+          chat_messages: chatMessages,
+          api_messages: apiMessages,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+
+      setIsSavingRemote(false);
+      setSyncMessage(error ? '저장에 실패했어요. Supabase 설정을 확인해주세요.' : '자동 저장됨');
+    }, 700);
+
+    return () => window.clearTimeout(timer);
+  }, [apiMessages, chatMessages, hasLoadedRemote, user?.id, weights, zones]);
+
+  const handleEmailAuth = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
+
+    const credentials = { email: email.trim(), password };
+    const { error } = authMode === 'signup'
+      ? await supabase.auth.signUp(credentials)
+      : await supabase.auth.signInWithPassword(credentials);
+
+    setAuthLoading(false);
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+
+    if (authMode === 'signup') {
+      setSyncMessage('가입 확인 메일을 확인해주세요.');
+    }
+  };
+
+  const handleOAuth = async (provider) => {
+    setAuthError('');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) setAuthError(error.message);
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   const closeDetail = () => { setTab('compare'); setSelectedId(null); setDraft(null); setListingDraft(null); setEditingListingId(null); };
 
@@ -322,6 +481,70 @@ export default function App() {
     }
   };
 
+  if (authLoading && !user) {
+    return (
+      <div style={{ background: C.bg, height: '100dvh', fontFamily: font, color: C.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <img src="/next-home-title.png" alt="Next Home" style={titleImageStyle(96)} />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div style={{ background: C.bg, minHeight: '100dvh', fontFamily: font, color: C.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, boxSizing: 'border-box' }}>
+        <div style={{ width: '100%', maxWidth: 430 }}>
+          <div className="flex justify-center" style={{ marginBottom: 24 }}>
+            <img src="/next-home-title.png" alt="Next Home" style={titleImageStyle(110)} />
+          </div>
+
+          <form onSubmit={handleEmailAuth} className="flex flex-col gap-3">
+            <input
+              style={inputStyle}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="이메일"
+              autoComplete="email"
+              required
+            />
+            <input
+              style={inputStyle}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="비밀번호"
+              autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
+              required
+              minLength={6}
+            />
+            {authError && <div className="text-sm" style={{ color: C.red }}>{authError}</div>}
+            {syncMessage && <div className="text-sm" style={{ color: C.textMuted }}>{syncMessage}</div>}
+            <button type="submit" className="w-full py-4 rounded-2xl font-semibold text-base" style={{ background: C.blueGradient, color: '#fff', border: 'none', boxShadow: '0 4px 14px rgba(49,130,246,0.28)', opacity: authLoading ? 0.6 : 1 }} disabled={authLoading}>
+              {authMode === 'signup' ? '이메일로 가입' : '이메일로 로그인'}
+            </button>
+          </form>
+
+          <button
+            onClick={() => { setAuthMode((prev) => (prev === 'signin' ? 'signup' : 'signin')); setAuthError(''); }}
+            className="w-full mt-3 py-3 rounded-2xl text-sm font-semibold"
+            style={{ background: C.greyBg2, color: C.textPrimary, border: `1px solid ${C.greyBg}` }}
+          >
+            {authMode === 'signup' ? '이미 계정이 있어요' : '새 계정 만들기'}
+          </button>
+
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <button onClick={() => handleOAuth('google')} className="py-3 rounded-2xl text-sm font-semibold" style={{ background: '#fff', color: C.textPrimary, border: `1px solid ${C.greyBg}` }}>
+              Google
+            </button>
+            <button onClick={() => handleOAuth('kakao')} className="py-3 rounded-2xl text-sm font-semibold" style={{ background: '#FEE500', color: '#191600', border: 'none' }}>
+              Kakao
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ background: C.bg, height: '100dvh', fontFamily: font, color: C.textPrimary, overflow: 'hidden' }}>
       <style>{`
@@ -364,13 +587,7 @@ export default function App() {
                 <img
                   src="/next-home-title.png"
                   alt="Next Home"
-                  style={{
-                    width: 'min(320px, 100%)',
-                    height: 100,
-                    objectFit: 'contain',
-                    objectPosition: 'center',
-                    display: 'block',
-                  }}
+                  style={titleImageStyle(100)}
                 />
               </div>
             );
@@ -703,6 +920,15 @@ export default function App() {
           {/* ---- Settings tab ---- */}
           {tab === 'settings' && (
             <div className="mt-2">
+              <div className="p-4 rounded-2xl mb-4 flex items-center justify-between gap-3" style={cardStyle}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="text-sm font-semibold" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email || '로그인됨'}</div>
+                  <div className="text-xs mt-1" style={{ color: C.textMuted }}>{isSavingRemote ? '저장 중...' : syncMessage}</div>
+                </div>
+                <button onClick={handleSignOut} className="flex items-center justify-center" style={{ width: 42, height: 42, borderRadius: 14, background: C.greyBg2, color: C.textMuted, border: `1px solid ${C.greyBg}`, flexShrink: 0 }} title="로그아웃">
+                  <LogOut size={18} />
+                </button>
+              </div>
               <div className="text-sm mb-5" style={{ color: C.textMuted }}>
                 항목별 중요도를 조절하면 비교 탭의 순위가 바로 바뀌어요. 항목들의 합이 100이 아니어도 비율로 계산돼요.
               </div>
