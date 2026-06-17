@@ -8,4 +8,13 @@ html, body, #root {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+input,
+textarea,
+select {
+  font-size: 16px;
 }

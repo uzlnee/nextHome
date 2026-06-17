@@ -219,7 +219,7 @@ function Field({ label, children }) {
 }
 
 const inputStyle = {
-  width: '100%', border: 'none', borderRadius: 14, padding: '14px 16px', fontSize: 15,
+  width: '100%', border: 'none', borderRadius: 14, padding: '14px 16px', fontSize: 16,
   color: C.textPrimary, background: C.greyBg, outline: 'none', boxSizing: 'border-box',
 };
 
